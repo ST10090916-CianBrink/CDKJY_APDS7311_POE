@@ -1,43 +1,74 @@
 version: 2.1
 
-jobs:
-  build-and-test:
+executors:
+  node-executor:
     docker:
       - image: circleci/node:16-browsers
-    steps:
-      - checkout
-      - restore_cache:
-          key: dependency-cache-{{ checksum "package-lock.json" }}
-      - run:
-          name: Install Dependencies
-          command: npm install
-      - save_cache:
-          key: dependency-cache-{{ checksum "package-lock.json" }}
-          paths:
-            - ./node_modules
-      - run:
-          name: Run Tests
-          command: npm test
+    working_directory: ~/project
 
-  sonarcloud:
-    docker:
-      - image: sonarsource/sonar-scanner-cli:latest
+jobs:
+  install-frontend:
+    executor: node-executor
     steps:
       - checkout
       - run:
-          name: Run SonarCloud Analysis
+          name: Navigate to Frontend and Install Dependencies
           command: |
-            sonar-scanner \
-              -Dsonar.organization=ST10090916-CianBrink \
-              -Dsonar.projectKey=SHA256:Buf7gMTvFwD2nIqo6cgUhpXCm+NCDqOVyvM5K8YqtTc \
-              -Dsonar.host.url=https://sonarcloud.io \
-              -Dsonar.login=$SONAR_TOKEN
+            cd frontend
+            npm install
+
+  install-backend:
+    executor: node-executor
+    steps:
+      - checkout
+      - run:
+          name: Navigate to Backend and Install Dependencies
+          command: |
+            cd backend
+            npm install
+
+  test-frontend:
+    executor: node-executor
+    steps:
+      - checkout
+      - run:
+          name: Navigate to Frontend and Run Tests
+          command: |
+            cd frontend
+            npm run test
+
+  test-backend:
+    executor: node-executor
+    steps:
+      - checkout
+      - run:
+          name: Navigate to Backend and Run Tests
+          command: |
+            cd backend
+            npm run test
+
+  build-frontend:
+    executor: node-executor
+    steps:
+      - checkout
+      - run:
+          name: Navigate to Frontend and Build
+          command: |
+            cd frontend
+            npm run build
 
 workflows:
   version: 2
-  build-test-and-analyze:
+  build-and-test:
     jobs:
-      - build-and-test
-      - sonarcloud:
+      - install-frontend
+      - install-backend
+      - test-frontend:
           requires:
-            - build-and-test
+            - install-frontend
+      - test-backend:
+          requires:
+            - install-backend
+      - build-frontend:
+          requires:
+            - test-frontend
