@@ -1,0 +1,44 @@
+name: SonarCloud Analysis
+
+on:
+  push:
+    branches:
+      - main # Run SonarCloud analysis on pushes to the main branch
+  pull_request:
+    branches:
+      - main # Run SonarCloud analysis on pull requests targeting the main branch
+
+jobs:
+  sonarcloud:
+    runs-on: ubuntu-latest
+    steps:
+      # Check out the code
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Set up Node.js (or another language you're using)
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "16"
+
+      # Install dependencies
+      - name: Install dependencies
+        run: npm install
+
+      # Run tests and generate code coverage
+      - name: Run tests
+        run: |
+          npm test
+          npm run coverage # Ensure your project generates a coverage report (e.g., lcov.info)
+
+      # Run SonarCloud analysis
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@v1.9
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.organization=Cian Brink
+            -Dsonar.projectKey=CDKJY_APDS7311_POE
+            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
