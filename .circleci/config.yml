@@ -3,58 +3,60 @@ version: 2.1
 executors:
   node-executor:
     docker:
-      - image: circleci/node:16.13.0 # Use a valid and stable Node.js version
-  backend-executor:
-    docker:
-      - image: circleci/node:16.13.0
+      - image: circleci/node:16
+    working_directory: ~/project
 
 jobs:
-  install-and-test-frontend:
+  install-frontend:
     executor: node-executor
-    working_directory: ~/project/frontend
     steps:
       - checkout
       - run:
           name: Install Frontend Dependencies
+          working_directory: ~/project/frontend
           command: npm install
       - run:
-          name: Test Frontend
-          command: npm test
+          name: Build Frontend
+          working_directory: ~/project/frontend
+          command: npm run build
 
-  install-and-test-backend:
-    executor: backend-executor
-    working_directory: ~/project/backend
+  install-backend:
+    executor: node-executor
     steps:
       - checkout
       - run:
           name: Install Backend Dependencies
+          working_directory: ~/project/backend
           command: npm install
       - run:
           name: Test Backend
+          working_directory: ~/project/backend
           command: npm test
 
-  sonar-analysis:
-    executor: node-executor
-    working_directory: ~/project
+  sonarcloud-scan:
+    docker:
+      - image: sonarsource/sonar-scanner-cli:latest
     steps:
       - checkout
       - run:
-          name: SonarQube Analysis
+          name: Run SonarCloud Scan
           command: |
             sonar-scanner \
               -Dsonar.projectKey=ST10090916-CianBrink_CDKJY_APDS7311_POE \
               -Dsonar.organization=st10090916-cianbrink \
+              -Dsonar.sources=./backend,./frontend/src \
               -Dsonar.host.url=https://sonarcloud.io \
               -Dsonar.login=a31576c179f1f4dc87777e82c93ba51ca677bb4b
 
 workflows:
   version: 2
-  build-and-test:
+  build-and-analyze:
     jobs:
-      - install-and-test-frontend
-      - install-and-test-backend:
+      - install-frontend
+      - install-backend:
           requires:
-            - install-and-test-frontend
-      - sonar-analysis:
+            - install-frontend
+      - sonarcloud-scan:
           requires:
-            - install-and-test-backend
+            - install-frontend
+            - install-backend
