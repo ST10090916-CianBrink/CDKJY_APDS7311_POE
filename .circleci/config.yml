@@ -3,59 +3,43 @@ version: 2.1
 executors:
   node-executor:
     docker:
-      - image: circleci/node:20  # Use the Node.js version you are using locally
+      - image: circleci/node:16.13.0 # Use a valid and stable Node.js version
+  backend-executor:
+    docker:
+      - image: circleci/node:16.13.0
 
 jobs:
-  install-frontend:
+  install-and-test-frontend:
     executor: node-executor
+    working_directory: ~/project/frontend
     steps:
       - checkout
       - run:
           name: Install Frontend Dependencies
-          command: |
-            cd frontend
-            npm install
+          command: npm install
+      - run:
+          name: Test Frontend
+          command: npm test
 
-  install-backend:
-    executor: node-executor
+  install-and-test-backend:
+    executor: backend-executor
+    working_directory: ~/project/backend
     steps:
       - checkout
       - run:
           name: Install Backend Dependencies
-          command: |
-            cd backend
-            npm install
-
-  test-frontend:
-    executor: node-executor
-    steps:
-      - checkout
-      - run:
-          name: Test Frontend
-          command: |
-            cd frontend
-            npm test
-
-  test-backend:
-    executor: node-executor
-    steps:
-      - checkout
+          command: npm install
       - run:
           name: Test Backend
-          command: |
-            cd backend
-            npm test
+          command: npm test
 
-  sonar-scan:
+  sonar-analysis:
     executor: node-executor
+    working_directory: ~/project
     steps:
       - checkout
       - run:
-          name: Install Sonar Scanner
-          command: |
-            npm install -g sonar-scanner
-      - run:
-          name: Run SonarQube Analysis
+          name: SonarQube Analysis
           command: |
             sonar-scanner \
               -Dsonar.projectKey=ST10090916-CianBrink_CDKJY_APDS7311_POE \
@@ -65,19 +49,12 @@ jobs:
 
 workflows:
   version: 2
-  build-test-and-scan:
+  build-and-test:
     jobs:
-      - install-frontend
-      - install-backend:
+      - install-and-test-frontend
+      - install-and-test-backend:
           requires:
-            - install-frontend
-      - test-frontend:
+            - install-and-test-frontend
+      - sonar-analysis:
           requires:
-            - install-frontend
-      - test-backend:
-          requires:
-            - install-backend
-      - sonar-scan:
-          requires:
-            - test-frontend
-            - test-backend
+            - install-and-test-backend
