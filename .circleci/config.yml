@@ -1,62 +1,23 @@
 version: 2.1
 
-executors:
-  node-executor:
-    docker:
-      - image: circleci/node:16
-    working_directory: ~/project
-
+# Define the jobs we want to run for this project
 jobs:
-  install-frontend:
-    executor: node-executor
-    steps:
-      - checkout
-      - run:
-          name: Install Frontend Dependencies
-          working_directory: ~/project/frontend
-          command: npm install
-      - run:
-          name: Build Frontend
-          working_directory: ~/project/frontend
-          command: npm run build
-
-  install-backend:
-    executor: node-executor
-    steps:
-      - checkout
-      - run:
-          name: Install Backend Dependencies
-          working_directory: ~/project/backend
-          command: npm install
-      - run:
-          name: Test Backend
-          working_directory: ~/project/backend
-          command: npm test
-
-  sonarcloud-scan:
+  build:
     docker:
-      - image: sonarsource/sonar-scanner-cli:latest
+      - image: cimg/base:2023.03
     steps:
       - checkout
-      - run:
-          name: Run SonarCloud Scan
-          command: |
-            sonar-scanner \
-              -Dsonar.projectKey=ST10090916-CianBrink_CDKJY_APDS7311_POE \
-              -Dsonar.organization=st10090916-cianbrink \
-              -Dsonar.sources=./backend,./frontend/src \
-              -Dsonar.host.url=https://sonarcloud.io \
-              -Dsonar.login=a31576c179f1f4dc87777e82c93ba51ca677bb4b
+      - run: echo "this is the build job"
+  test:
+    docker:
+      - image: cimg/base:2023.03
+    steps:
+      - checkout
+      - run: echo "this is the test job"
 
+# Orchestrate our job run sequence
 workflows:
-  version: 2
-  build-and-analyze:
+  build_and_test:
     jobs:
-      - install-frontend
-      - install-backend:
-          requires:
-            - install-frontend
-      - sonarcloud-scan:
-          requires:
-            - install-frontend
-            - install-backend
+      - build
+      - test
